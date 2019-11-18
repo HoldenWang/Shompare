@@ -1,9 +1,13 @@
-# ConfigCompare
-contrast the config files between two jar files or one jar file and one properties file
+# Shompare
++ 远超beyondCompare的配置比较程序。专门用于比较a=b形式的配置文件，会自动过滤注释（以#开头）内容并给出比对结论。
 
 # 说明
-+ 这是一个很小的shell脚本，没有采用规范的框架和模式，但以相对简洁的方式进行编码。对于yml文件需要先转换成properties文件。
-+ 该脚本用于实现两个jar包内配置文件的比对（上次上线和本次上线的jar包文件）或者jar包内和jar包外配置文件的比对（本次上线jar包文件和测试环境测试通过的配置文件）
++ 参数说明
+  - `$1`:必传，需要比对的文件
+  - `$2`:必传，用于对比对的文件（期望正确的文件）
+  - `$3`:可选，如果前两个参数为压缩包（jar，zip），此参数用于指定比对的jar包内的文件，默认为applicaton-prod.propeties
+  - `$4`:可选，设置模式，`q`表示安静模式，经打印统计结论
++ 示例
 + 比对两个jar包的application-prod.properties
   - `./cmp_evo.sh A_cur.jar A_last.jar application-prod.properties`
 + 比对A_cur.jar包内application-prod.properties 和jar包外的application-test.propertes
