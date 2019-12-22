@@ -55,7 +55,7 @@
     (New-Object Net.WebClient).DownloadFile(
       $uri,
       $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
-        "~\tools\Shompare.sh"
+        "~\tools\Shompare\Shompare.sh"
       )
     )
   ```
