@@ -45,6 +45,17 @@
 + download
   - Unix
   ```
-    curl -fLo ~/ --create-dirs \
-    https://sample.com
+    curl -fLo ~/tools/Shompare --create-dirs \
+    https://github.com/HoldenWang/Shompare/blob/master/Shompare.sh
+  ```
+  - Windows(PowerShell)
+  ```
+    md ~\tools\Shompare
+    $uri = 'https://github.com/HoldenWang/Shompare/blob/master/Shompare.sh'
+    (New-Object Net.WebClient).DownloadFile(
+      $uri,
+      $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
+        "~\tools\Shompare.sh"
+      )
+    )
   ```
