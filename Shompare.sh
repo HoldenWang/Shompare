@@ -8,17 +8,20 @@
 ## $2: the jar file last published or the config file of testing Env
 ## $3: optional param. set the file in the first jar to contrast,default is application-prod.properties
 # Example:
-##  ./cmp_evo.sh A_cur.jar A_last.jar 
-##  ./cmp_evo.sh A_cur.jar config/application-test.properties
-##  ./cmp_evo.sh A_cur.jar config/quartz-test.properties  quartz-prod.properties
+##  ./Shompare.sh A_cur.jar A_last.jar 
+##  ./Shompare.sh A_cur.jar config/application-test.properties
+##  ./Shompare.sh A_cur.jar config/quartz-test.properties  quartz-prod.properties
 # TODO
 ## 需要增加替换逻辑，避免比对测试环境配置文件时不同点过多的现象
+## grep -Hsli application-prod.yml YYZX_TranscriptEngineProxyService.jar 
 
 # 验证依赖是否存在并安装
 echo "checking dependences..."
 rpm -qa | grep dos2unix || yum install -y dos2unix
 
-if [ $# -ge 2 ] && [ -f $1 ] && [ -f $2 ];then
+if [ $# = 1 ] && [ -f $1 ];then
+    parse_YAML $1
+elif [ $# -ge 2 ] && [ -f $1 ] && [ -f $2 ];then
     dir="/tmp/$$" && mkdir -p "/tmp/$$"
     souFile=$1
     tarFile=$2
@@ -50,39 +53,41 @@ else
     echo "you should give two existed files" && exit
 fi
 dos2unix ${dir}/souFile.properties  ${dir}/tarFile.properties >/dev/null 2>&1
-:<<EOF
+
 # 基于只会在原有节点上增加子节点，不会增加不存在的父节点,假设文件符合yaml语法
-sed -e 's/#.*//;s/[ \t]*$//g;/^$/ d' application-test.yml |\
-awk -F: -v OFS=':' 'BEGIN{idx=1}
-    (NF>=2){
-        len=gsub(/ /,"",$1);
-        if(len==0){
-            delete tree
-            last=""
-        };
-        if(tree[len]==""){
-            tree[len]=last"."$1
+function parse_YAML(){
+    local file=$1
+    sed -e 's/#.*//;s/[ \t]*$//g;/^$/ d' $file |\
+    awk -F: -v OFS=':' 'BEGIN{idx=1}
+        (NF>=2){
+            len=gsub(/ /,"",$1);
+            if(len==0){
+                delete tree
+                last=""
+            };
+            if(tree[len]==""){
+                tree[len]=last"."$1
+            }
+            else{
+                tree[len]=gensub(/.[^.]+$/,"","g",tree[len])"."$1
+            };
+            last=tree[len];
+            if($2!=""){
+                #split($0,val,": ");
+                #printf("%s %s=%s\n",len,tree[len],val[2])
+                printf("%s=%s\n",substr(tree[len],2),substr($0,length($1)+3))
+            }
+            idx=1
         }
-        else{
-            tree[len]=gensub(/.[^.]+$/,"","g",tree[len])"."$1
-        };
-        last=tree[len];
-        if($2!=""){
-            #split($0,val,": ");
-            #printf("%s %s=%s\n",len,tree[len],val[2])
-            printf("%s=%s\n",substr(tree[len],2),substr($0,length($1)+3))
-        }
-        idx=1
-    }
-    (NF<2){
-        split($0,val,"- ");
-        len=gsub(/ /,"",val[1]);
-        printf("%s=%s\n",substr(tree[len]"["idx"]",2),substr(val[2],1))
-        #printf("%s=%s\n",substr(tree[len],2),substr(val[2],1))
-        last=tree[len];
-        idx++
+        (NF<2){
+            split($0,val,"- ");
+            len=gsub(/ /,"",val[1]);
+            printf("%s=%s\n",substr(tree[len]"["idx"]",2),substr(val[2],1))
+            #printf("%s=%s\n",substr(tree[len],2),substr(val[2],1))
+            last=tree[len];
+            idx++
     }'
-EOF
+}
 
 # 删除注释，空行，空格
 sed -e 's/#.*//;s/ //g;/^$/ d'  ${dir}/souFile.properties |sort > ${dir}/souFile_mod.properties
