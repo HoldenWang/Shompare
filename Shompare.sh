@@ -157,6 +157,8 @@ elif [ $# -ge 2 ] && [ -f $1 ] && [ -f $2 ];then
 else
     echo "you should give two existed files" && exit
 fi
+#含有bom头的文件认为失败，可能影响项目启动
+grep -I -r -l $'\xEF\xBB\xBF' ${dir}/ && echo "there are bom file,please check" && exit
 dos2unix ${dir}/souFile.properties  ${dir}/tarFile.properties >/dev/null 2>&1
 
 # 删除注释，空行，空格
@@ -172,13 +174,20 @@ awk -F '=' -v cn="${contrast_name}" '
         else{tar=substr($0,length($1)+2)}
         # 上线配置相比测试环境少了
         if(cur[$1]=="")
-            {m++;printf("上线配置缺少配置:\n\t%s\n",$0)}
+            {m++;printf("L上线配置缺少配置:\n\t%s\n",$0)}
         # 上线配置与测试环境配置不一致的地方
         else if(cur[$1]!=tar)
-            {n++;printf("不一致配置:%s\n\t%s <prod====%s> %s\n",$1,cur[$1],cn,tar);cur[$1]=""}
+            {n++;printf("U不一致配置:%s\n\t%s <prod====%s> %s\n",$1,cur[$1],cn,tar);cur[$1]=""}
         else {cur[$1]=""}
     }
-    END{for(i in cur){if(cur[i]!=""){k++;if(flag!=1){printf("上线多出配置:\n\t%s=%s\n",i,cur[i])}}};printf("==============================================\n\t累计检查配置 %s项\n\t上线配置累计缺失 %s 项\n\t上线配置累计不一致处 %s 项 \n\t上线配置累计多出 %s 项\n ",FNR,m,n,k)}' ${dir}/souFile_mod.properties ${dir}/tarFile_mod.properties> ${dir}/rep.html
+    END{for(i in cur){if(cur[i]!=""){k++;if(flag!=1){printf("M上线多出配置:\n\t%s=%s\n",i,cur[i])}}};printf("==============================================\n\t累计检查配置 %s项\n\t上线配置累计缺失 %s 项\n\t上线配置累计不一致处 %s 项 \n\t上线配置累计多出 %s 项\n ",FNR,m,n,k)}' ${dir}/souFile_mod.properties ${dir}/tarFile_mod.properties> ${dir}/rep.html
 
 echo "可从 ${dir}/rep.html 查看具体结果"
-[ "$4" = "q" ] && flag=1 && echo "quiet mode..."
+if [ "$4" != "q" ];then 
+    awk 'BEGIN{sw=1}($1~/^L/){}(sw==0){print $0}($0~/^=/){exit}' ${dir}/rep.html
+    awk 'BEGIN{sw=1}($1~/^M/){}(sw==0){print $0}($0~/^=/){exit}' ${dir}/rep.html
+    awk 'BEGIN{sw=1}($1~/^U/){}(sw==0){print $0}($0~/^=/){exit}' ${dir}/rep.html
+else
+    echo "quiet mode..."
+fi
+awk 'BEGIN{sw=1}($0~/^=/){sw=0}(sw==0){print $0}' ${dir}/rep.html
